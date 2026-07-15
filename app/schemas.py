@@ -1,113 +1,101 @@
-from __future__ import annotations
-
 from datetime import datetime
-from enum import StrEnum
-from typing import Annotated, Self
+from typing import Annotated, Any
 
-from pydantic import (
-    BaseModel,
-    ConfigDict,
-    EmailStr,
-    Field,
-    HttpUrl,
-    field_validator,
-    model_validator,
-)
+from pydantic import BaseModel, ConfigDict, Field, field_validator
+
+from app.models import NotePriority
 
 
-class Priority(StrEnum):
-    low = "low"
-    medium = "medium"
-    high = "high"
+Title = Annotated[
+    str,
+    Field(min_length=1, max_length=100),
+]
 
+Content = Annotated[
+    str | None,
+    Field(max_length=10000),
+]
 
 Tag = Annotated[
     str,
-    Field(
-        min_length=1,
-        max_length=20,
-        pattern=r"^[^<>]+$",
-        description="单个标签长度为 1-20，且不能包含尖括号",
-    ),
+    Field(min_length=1, max_length=20),
 ]
 
 
 class NoteBase(BaseModel):
-    model_config = ConfigDict(
-        extra="forbid",
-        str_strip_whitespace=True,
-    )
+    """Note 公共字段。"""
 
-    title: str = Field(
-        min_length=1,
-        max_length=100,
-        pattern=r"^[^<>]+$",
-        description="标题必填，1-100 字，不能包含 < 或 >",
-    )
-    content: str | None = Field(default=None, max_length=10_000)
-    priority: Priority = Priority.medium
+    model_config = ConfigDict(extra="forbid")
+
+    title: Title
+    content: Content = None
+    priority: NotePriority = NotePriority.medium
     tags: list[Tag] = Field(default_factory=list, max_length=5)
     is_archived: bool = False
 
-    metadata: dict[str, str] = Field(default_factory=dict)
-    owner_email: EmailStr | None = None
-    reference_url: HttpUrl | None = None
-    due_at: datetime | None = None
-
-    @field_validator("tags")
+    @field_validator("title", mode="before")
     @classmethod
-    def tags_must_be_unique(cls, value: list[str]) -> list[str]:
-        normalized = [tag.strip().lower() for tag in value]
-        if len(normalized) != len(set(normalized)):
-            raise ValueError("tags 不能重复")
-        return normalized
+    def validate_title(cls, value: Any) -> Any:
+        """清理标题，并禁止出现尖括号。"""
 
-    @model_validator(mode="after")
-    def title_and_content_must_differ(self) -> Self:
-        if self.content and self.title == self.content.strip():
-            raise ValueError("title 与 content 不能完全相同")
-        return self
+        if isinstance(value, str):
+            value = value.strip()
+
+            if "<" in value or ">" in value:
+                raise ValueError("title 不能包含特殊字符 < 或 >")
+
+        return value
+
+    @field_validator("tags", mode="before")
+    @classmethod
+    def validate_tags(cls, value: Any) -> Any:
+        """清理标签，并禁止标签重复。"""
+
+        if value is None or not isinstance(value, list):
+            return value
+
+        if not all(isinstance(item, str) for item in value):
+            return value
+
+        cleaned_tags = [item.strip() for item in value]
+        normalized_tags = [item.casefold() for item in cleaned_tags]
+
+        if len(normalized_tags) != len(set(normalized_tags)):
+            raise ValueError("tags 不能重复")
+
+        return cleaned_tags
 
 
 class NoteCreate(NoteBase):
-    pass
+    """POST 创建便签时使用。"""
 
 
 class NoteUpdate(NoteBase):
-    pass
+    """PUT 全量更新时使用，所有字段必须明确传入。"""
+
+    content: Content
+    priority: NotePriority
+    tags: list[Tag] = Field(max_length=5)
+    is_archived: bool
 
 
-class NotePatch(BaseModel):
-    model_config = ConfigDict(extra="forbid", str_strip_whitespace=True)
+class NotePatch(NoteBase):
+    """PATCH 部分更新时使用，所有字段均可不传。"""
 
-    title: str | None = Field(
-        default=None,
-        min_length=1,
-        max_length=100,
-        pattern=r"^[^<>]+$",
-    )
-    content: str | None = Field(default=None, max_length=10_000)
-    priority: Priority | None = None
+    title: Title | None = None
+    content: Content = None
+    priority: NotePriority | None = None
     tags: list[Tag] | None = Field(default=None, max_length=5)
     is_archived: bool | None = None
-    metadata: dict[str, str] | None = None
-    owner_email: EmailStr | None = None
-    reference_url: HttpUrl | None = None
-    due_at: datetime | None = None
-
-    @field_validator("tags")
-    @classmethod
-    def tags_must_be_unique(cls, value: list[str] | None) -> list[str] | None:
-        if value is None:
-            return None
-        normalized = [tag.strip().lower() for tag in value]
-        if len(normalized) != len(set(normalized)):
-            raise ValueError("tags 不能重复")
-        return normalized
 
 
 class NoteOut(NoteBase):
-    model_config = ConfigDict(from_attributes=True)
+    """接口返回便签数据时使用。"""
+
+    model_config = ConfigDict(
+        from_attributes=True,
+        extra="forbid",
+    )
 
     id: int
     created_at: datetime

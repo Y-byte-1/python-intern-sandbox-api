@@ -1,39 +1,39 @@
-from __future__ import annotations
-
+import os
 from collections.abc import AsyncGenerator
-from datetime import datetime
 
-from sqlalchemy import DateTime, String, func
 from sqlalchemy.ext.asyncio import (
-    AsyncAttrs,
     AsyncSession,
     async_sessionmaker,
     create_async_engine,
 )
-from sqlalchemy.orm import DeclarativeBase, Mapped, mapped_column
-
-DATABASE_URL = "sqlite+aiosqlite:///./day2_demo.db"
-
-engine = create_async_engine(DATABASE_URL, echo=False)
-SessionFactory = async_sessionmaker(engine, expire_on_commit=False)
+from sqlalchemy.orm import DeclarativeBase
 
 
-class Base(AsyncAttrs, DeclarativeBase):
-    pass
+DATABASE_URL = os.getenv(
+    "DATABASE_URL",
+    "postgresql+asyncpg://intern:intern_password@127.0.0.1:5432/intern_db",
+)
 
 
-class DemoNote(Base):
-    __tablename__ = "demo_notes"
-
-    id: Mapped[int] = mapped_column(primary_key=True, autoincrement=True)
-    title: Mapped[str] = mapped_column(String(100), nullable=False)
-    created_at: Mapped[datetime] = mapped_column(
-        DateTime(timezone=True),
-        server_default=func.now(),
-        nullable=False,
-    )
+class Base(DeclarativeBase):
+    """所有 SQLAlchemy ORM 模型的基类。"""
 
 
-async def get_session() -> AsyncGenerator[AsyncSession, None]:
-    async with SessionFactory() as session:
+engine = create_async_engine(
+    DATABASE_URL,
+    echo=False,
+    pool_pre_ping=True,
+)
+
+AsyncSessionLocal = async_sessionmaker(
+    bind=engine,
+    class_=AsyncSession,
+    expire_on_commit=False,
+)
+
+
+async def get_db() -> AsyncGenerator[AsyncSession, None]:
+    """为每个请求提供独立的异步数据库 Session。"""
+
+    async with AsyncSessionLocal() as session:
         yield session
