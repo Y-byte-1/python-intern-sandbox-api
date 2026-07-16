@@ -10,3 +10,6 @@ htmlcov/
 day2_demo.db
 docker-data/
 environment_check.txt
+# Runtime logs
+logs/*.log
+logs/*.log.*

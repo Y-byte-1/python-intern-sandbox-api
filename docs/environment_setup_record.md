@@ -9,14 +9,12 @@
 - **远程仓库**：`https://github.com/Y-byte-1/python-intern-sandbox-api`
 - **接口测试工具**：Postman 
 
----
 
 ## 2. 环境审计与安装结果
 
-为避免重复安装，先对本机已有环境进行检查，再补充缺少的软件和依赖。
+为避免重复安装，先对已有环境进行l了检查，再补充缺少的软件和依赖。
 
 | 项目 | 实际版本或状态 | 处理结果 |
-|---|---|---|
 | Python | 3.13.5，位于 `D:\Anaconda\python.exe` | 保留使用 |
 | pip | 25.1 | 无需重复安装 |
 | Git | 2.46.2 | 已完成用户名、邮箱和默认分支配置 |
@@ -30,12 +28,9 @@
 目录规划：
 
 - 开发代码统一放在 `D:\Code`
-- 开发工具尽量放在 `D:\Tools`
+- 开发工具放在 `D:\Tools`
 - Docker Desktop 安装在 `D:\Tools\DockerDesktop`
 - Docker 数据存放在 `D:\Tools\DockerData`
-- 尽量减少 C 盘空间占用
-
----
 
 ## 3. Python 虚拟环境配置
 
