@@ -13,7 +13,7 @@
 - 请求数据格式：`application/json`
 - 响应数据格式：`application/json`
 - 数据库：PostgreSQL
-- 数据库访问方式：SQLAlchemy 2.0 Async ORM
+- 数据库访问方式：SQLAlchemy2.0 Async ORM
 - 接口实现方式：FastAPI `async def`
 ---
 
@@ -34,7 +34,7 @@
 
 ---
 
-# 3. 请求与响应 Schema
+# 3. 请求与响应Schema
 
 ## 3.1 NoteCreate
 
@@ -115,7 +115,7 @@ PUT 表示全量更新，因此所有可修改字段都必须在请求体中出�
 用于：
 
 ```text
-PATCH /notes/{note_id}
+PATCH/notes/{note_id}
 ```
 
 PATCH 表示部分更新，只需要传入需要修改的字段。
@@ -158,7 +158,6 @@ PATCH 表示部分更新，只需要传入需要修改的字段。
 ```python
 payload.model_dump(exclude_unset=True)
 ```
-
 获取用户实际传入的字段。
 
 ---
@@ -202,7 +201,7 @@ Pydantic 配置：
 model_config = ConfigDict(from_attributes=True)
 ```
 
-该配置允许直接将 SQLAlchemy ORM 对象转换为 `NoteOut`。
+该配置允许直接将SQLAlchemy ORM对象转换为 `NoteOut`。
 
 ---
 
@@ -370,12 +369,12 @@ NoteOut
 * `content` 最长 10000 字，可以为 `null`。
 * `priority` 只能为 `low`、`medium`、`high`。
 * 未传 `priority` 时默认为 `medium`。
-* `tags` 最多 5 个。
+* `tags` 最多5个。
 * 每个标签去除首尾空格后长度为 1～20。
 * 标签不能重复，重复判断忽略大小写。
-* 未传 `tags` 时默认为空数组。
-* 未传 `is_archived` 时默认为 `false`。
-* 不允许出现 Schema 中未声明的额外字段。
+* 未传`tags`时默认为空数组。
+* 未传`is_archived`时默认为 `false`。
+* 不允许出现Schema中未声明的额外字段。
 
 ---
 
@@ -395,7 +394,7 @@ GET
 
 ## 请求 Schema
 
-无 JSON 请求体，通过 Query 参数传递。
+无JSON请求体，通过Query参数传递。
 
 | 参数            | 类型      | 必填 | 默认值 | 校验规则                  |
 | ------------- | ------- | -: | --: | --------------------- |
@@ -407,13 +406,13 @@ GET
 请求示例：
 
 ```text
-GET /notes?page=1&page_size=20
+GET/notes?page=1&page_size=20
 ```
 
 按优先级和归档状态筛选：
 
 ```text
-GET /notes?page=1&page_size=20&priority=high&is_archived=false
+GET/notes?page=1&page_size=20&priority=high&is_archived=false
 ```
 
 ## 成功响应
@@ -815,121 +814,3 @@ DELETE /notes/1
 * [ ] 删除已存在 ID 返回 204
 * [ ] 删除后再次查询返回 404
 * [ ] 删除不存在 ID 返回 404
-
----
-
-# 13. 当前开发进度
-
-## 已完成
-
-* `POST /notes`
-* `GET /notes`
-* `GET /notes/{note_id}`
-* PostgreSQL 异步连接
-* SQLAlchemy Note 模型
-* Pydantic Schema
-* Alembic 建表迁移
-* 功能分支 `feature/note-crud`
-
-## 待完成
-
-* `PUT /notes/{note_id}`
-* `PATCH /notes/{note_id}`
-* `DELETE /notes/{note_id}`
-* 统一 404、422、500 错误响应
-* PATCH 空请求校验
-* PATCH 非空字段的 null 校验
-* pytest CRUD 测试
-* Alembic downgrade 回滚验证
-* Ruff、Black、mypy 检查
-* Pull Request 与合并
-
-````
-
-## 对照你当前代码，需要重点检查的地方
-
-你的前三个接口总体方向正确，但目前还不能完全符合上面这份接口合同。
-
-### 1. 当前 404 格式还没有统一
-
-目前代码是：
-
-```python
-raise HTTPException(
-    status_code=404,
-    detail="Note not found",
-)
-````
-
-默认返回：
-
-```json
-{
-  "detail": "Note not found"
-}
-```
-
-最终要求应统一为：
-
-```json
-{
-  "code": "NOTE_NOT_FOUND",
-  "message": "Note not found",
-  "details": null
-}
-```
-
-### 2. 当前 NotePatch 允许不应出现的 null
-
-你当前类似：
-
-```python
-title: Title | None = None
-priority: NotePriority | None = None
-tags: list[Tag] | None = None
-is_archived: bool | None = None
-```
-
-这会允许：
-
-```json
-{
-  "title": null
-}
-```
-
-但数据库中的 `title` 不允许为空，所以 Day 4 需要修正：
-
-* 字段可以不传；
-* 但传入后不能为 `null`；
-* 只有 `content` 可以明确为 `null`。
-
-### 3. 当前路径 ID 没有限制大于等于 1
-
-当前：
-
-```python
-note_id: int
-```
-
-建议改成：
-
-```python
-note_id: Annotated[int, Path(ge=1)]
-```
-
-这样 `/notes/0`、`/notes/-1` 会直接返回 422。
-
-### 4. 当前 422 和 500 尚未统一
-
-FastAPI 默认 422 格式不是本文定义的统一格式，需要注册：
-
-```python
-RequestValidationError
-```
-
-异常处理器。
-
-500 也需要统一异常处理器，并且避免向客户端泄露内部异常。
-
-### 5. PUT、PATCH、DELETE 尚未实现
