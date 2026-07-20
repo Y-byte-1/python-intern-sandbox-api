@@ -7,10 +7,8 @@
 3. 严重错误额外保存到 logs/error.log。
 """
 
-import logging
 from logging.config import dictConfig
 from pathlib import Path
-
 
 # 当前文件：
 # D:\Code\python_intern_day1_day2_kit\app\logging_config.py
@@ -39,19 +37,12 @@ def configure_logging() -> None:
     logging_config = {
         # dictConfig 配置格式版本，目前固定使用 1。
         "version": 1,
-
         # False 表示不要禁用第三方库已经创建的 Logger。
         "disable_existing_loggers": False,
-
         # 定义日志输出格式。
         "formatters": {
             "standard": {
-                "format": (
-                    "%(asctime)s | "
-                    "%(levelname)s | "
-                    "%(name)s | "
-                    "%(message)s"
-                ),
+                "format": ("%(asctime)s | " "%(levelname)s | " "%(name)s | " "%(message)s"),
                 "datefmt": "%Y-%m-%d %H:%M:%S",
             },
             "detailed": {
@@ -65,7 +56,6 @@ def configure_logging() -> None:
                 "datefmt": "%Y-%m-%d %H:%M:%S",
             },
         },
-
         # Handler 决定日志输出到哪里。
         "handlers": {
             # 输出到 PowerShell 或 VS Code 终端。
@@ -75,34 +65,23 @@ def configure_logging() -> None:
                 "formatter": "standard",
                 "stream": "ext://sys.stdout",
             },
-
             # 保存所有 INFO 及以上日志。
             "app_file": {
-                "class": (
-                    "logging.handlers."
-                    "RotatingFileHandler"
-                ),
+                "class": ("logging.handlers." "RotatingFileHandler"),
                 "level": "INFO",
                 "formatter": "detailed",
                 "filename": str(APP_LOG_FILE),
                 "encoding": "utf-8",
-
                 # 单个日志文件最大约 10 MB。
                 "maxBytes": 10 * 1024 * 1024,
-
                 # 最多保留 5 个历史文件。
                 "backupCount": 5,
-
                 # 第一次真正写日志时再打开文件。
                 "delay": True,
             },
-
             # 单独保存 ERROR 和 CRITICAL 日志。
             "error_file": {
-                "class": (
-                    "logging.handlers."
-                    "RotatingFileHandler"
-                ),
+                "class": ("logging.handlers." "RotatingFileHandler"),
                 "level": "ERROR",
                 "formatter": "detailed",
                 "filename": str(ERROR_LOG_FILE),
@@ -112,7 +91,6 @@ def configure_logging() -> None:
                 "delay": True,
             },
         },
-
         # 根 Logger。
         #
         # 其他模块通过 logging.getLogger(__name__)
@@ -125,24 +103,20 @@ def configure_logging() -> None:
                 "error_file",
             ],
         },
-
         # 单独配置项目 Logger。
         "loggers": {
             "app": {
                 "level": "INFO",
-
                 # 不单独绑定 Handler，而是传播给 root。
                 "handlers": [],
                 "propagate": True,
             },
-
             # 让 Uvicorn 的错误日志也进入项目日志。
             "uvicorn.error": {
                 "level": "INFO",
                 "handlers": [],
                 "propagate": True,
             },
-
             # 记录 HTTP 访问日志。
             "uvicorn.access": {
                 "level": "INFO",

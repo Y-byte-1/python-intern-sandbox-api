@@ -4,7 +4,6 @@ from collections.abc import AsyncGenerator
 from sqlalchemy.ext.asyncio import AsyncSession, async_sessionmaker, create_async_engine
 from sqlalchemy.orm import DeclarativeBase
 
-
 # ------------------------------
 # 1. 数据库连接配置
 # ------------------------------
@@ -34,9 +33,9 @@ class Base(DeclarativeBase):
 # 整个应用全局只需要创建一个 engine 实例，所有会话都复用这个引擎的连接池
 engine = create_async_engine(
     DATABASE_URL,
-    echo=False,          # 是否打印执行的 SQL 语句，开发调试可设为 True，生产环境关闭
+    echo=False,  # 是否打印执行的 SQL 语句，开发调试可设为 True，生产环境关闭
     pool_pre_ping=True,  # 连接池健康检查：每次从池中取连接前，先测试连接是否还存活
-                         # 避免数据库主动断开连接后，程序拿到失效连接报错
+    # 避免数据库主动断开连接后，程序拿到失效连接报错
 )
 
 
@@ -46,11 +45,11 @@ engine = create_async_engine(
 # async_sessionmaker 是会话的「工厂类」，用来批量生成会话对象
 # 不直接全局共享一个 Session，因为 Session 不是线程/协程安全的，每个请求必须用独立的 Session
 AsyncSessionLocal = async_sessionmaker(
-    bind=engine,                # 绑定上面创建的数据库引擎，复用连接池
-    class_=AsyncSession,        # 指定生成的会话类型为异步会话
-    expire_on_commit=False,     # 提交事务后，不将会话内的对象标记为「过期」
-                                # 设为 False 后，提交事务后依然可以直接读取对象属性，无需重新查询
-                                # 配合 FastAPI 接口返回数据非常常用，避免提交后访问属性触发额外查询
+    bind=engine,  # 绑定上面创建的数据库引擎，复用连接池
+    class_=AsyncSession,  # 指定生成的会话类型为异步会话
+    expire_on_commit=False,  # 提交事务后，不将会话内的对象标记为「过期」
+    # 设为 False 后，提交事务后依然可以直接读取对象属性，无需重新查询
+    # 配合 FastAPI 接口返回数据非常常用，避免提交后访问属性触发额外查询
 )
 
 

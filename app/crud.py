@@ -1,12 +1,15 @@
 # 导入 SQLAlchemy 查询语句构造函数
 from sqlalchemy import select
+
 # 导入 SQLAlchemy 通用异常基类，用于捕获所有数据库相关异常
 from sqlalchemy.exc import SQLAlchemyError
+
 # 导入异步数据库会话类型，用于类型注解
 from sqlalchemy.ext.asyncio import AsyncSession
 
 # 导入 ORM 数据模型和优先级枚举
 from app.models import Note, NotePriority
+
 # 导入 Pydantic 入参校验模型
 from app.schemas import NoteCreate, NotePatch, NoteUpdate
 
@@ -39,7 +42,8 @@ async def create_note(db: AsyncSession, note_data: NoteCreate) -> Note:
 
 
 # 分页条件查询笔记列表
-# 参数中的 * 是 Python 强制关键字参数语法：调用该函数时，* 后面的参数必须通过关键字传参，不能按位置传，避免传参顺序错误
+# 参数中的 * 是 Python 强制关键字参数语法：
+# 调用该函数时，* 后面的参数必须通过关键字传参，不能按位置传，避免传参顺序错误
 async def list_notes(
     db: AsyncSession,
     *,

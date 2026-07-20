@@ -5,13 +5,24 @@ crud.py 需要 Note
 Alembic 需要 Base.metadata
 """
 
+import enum
+from datetime import datetime
+
+from sqlalchemy import Boolean, DateTime, String, Text, func, text
+from sqlalchemy import Enum as SqlEnum
+from sqlalchemy.dialects.postgresql import ARRAY
+from sqlalchemy.orm import Mapped, mapped_column
+
+from app.database import Base
+
 """
 ### `Mapped[类型]`：Python 层面的类型标记
 
 `Mapped` 是 SQLAlchemy 提供的泛型类型，作用有两个：
 
 - 标记作用：告诉 SQLAlchemy **这个类属性是和数据库表映射的字段**
-- 类型作用：方括号内指定该字段在 Python 代码中的数据类型，比如 `Mapped[int]` 表示 Python 层面操作这个字段得到的是整数
+- 类型作用：方括号内指定该字段在 Python 代码中的数据类型，
+  比如 `Mapped[int]` 表示 Python 层面操作这个字段得到的是整数
 
 它的核心价值：
 
@@ -35,21 +46,19 @@ Alembic 需要 Base.metadata
 - 简单字段：只写 `Mapped` 即可，SQLAlchemy 自动推断数据库类型
 - 带约束、特殊类型的字段：`Mapped` + `mapped_column` 配合使用
 """
-import enum
-from datetime import datetime
 
-from sqlalchemy import Boolean, DateTime, Enum as SqlEnum, String, Text, func, text
-from sqlalchemy.dialects.postgresql import ARRAY
-from sqlalchemy.orm import Mapped, mapped_column
-"""
-所有使用 `Mapped` 写法的模型类，都必须继承自 `DeclarativeBase` 的子类，这是 SQLAlchemy 2.0 声明式模型的基础：
-"""
-from app.database import Base
 
-class NotePriority(str, enum.Enum):
+"""
+所有使用 `Mapped` 写法的模型类，都必须继承自 `DeclarativeBase` 的子类，
+这是 SQLAlchemy 2.0 声明式模型的基础：
+"""
+
+
+class NotePriority(enum.StrEnum):
     low = "low"
     medium = "medium"
     high = "high"
+
 
 class Note(Base):
     __tablename__ = "notes"
@@ -67,9 +76,11 @@ class Note(Base):
     - Python 层面：`tags` 是字符串列表 `list[str]`
     - 数据库层面：PostgreSQL 原生的一维数组类型，每个元素长度不超过 20
     - 细节说明：
-    - `default=list`：Python 层面默认空列表（注意传的是 `list` 函数本身，不是 `[]`，和 Pydantic 的 `default_factory` 同理，避免所有实例共享同一个列表）
+    - `default=list`：Python 层面默认空列表（注意传的是 `list` 函数本身，
+       不是 `[]`，和 Pydantic 的 `default_factory` 同理，避免所有实例共享同一个列表）
     - `server_default=text("'{}'")`：数据库层面默认空数组，`{}` 是 PostgreSQL 数组的字面量写法
-    - 注意：`ARRAY` 是 PostgreSQL 专属类型，MySQL 不支持原生数组，MySQL 场景一般用 JSON 类型存储列表。
+    - 注意：`ARRAY` 是 PostgreSQL 专属类型，
+      MySQL 不支持原生数组，MySQL 场景一般用 JSON 类型存储列表。
     """
     tags: Mapped[list[str]] = mapped_column(
         ARRAY(String(20)),
