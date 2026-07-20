@@ -10,7 +10,7 @@
 """
 
 import logging
-from typing import Any
+from typing import Any, cast
 
 from fastapi import FastAPI, Request
 from fastapi.exceptions import RequestValidationError
@@ -19,7 +19,7 @@ from sqlalchemy.exc import SQLAlchemyError
 from starlette.exceptions import (
     HTTPException as StarletteHTTPException,
 )
-
+from starlette.types import ExceptionHandler
 
 # 获取当前模块的日志记录器。
 #
@@ -92,7 +92,7 @@ class AppError(Exception):
 class NoteNotFoundError(AppError):
     """
     Note 不存在异常。
-    
+
     """
 
     def __init__(self) -> None:
@@ -156,7 +156,7 @@ def log_exception(
         request.url.path,
         request.method,
         exc_info=(
-            type(exc), 
+            type(exc),
             exc,
             exc.__traceback__,
         ),
@@ -238,16 +238,12 @@ async def validation_error_handler(
         # body.title
         # path.note_id
         # query.page
-        field = ".".join(
-            str(item)
-            for item in error.get("loc", [])
-        )
+        field = ".".join(str(item) for item in error.get("loc", []))
 
         details.append(
             {
                 # 错误字段位置。
                 "field": field,
-
                 # Pydantic 提供的错误说明。
                 "message": str(
                     error.get(
@@ -255,7 +251,6 @@ async def validation_error_handler(
                         "Invalid value",
                     )
                 ),
-
                 # 机器可识别的校验错误类型。
                 #
                 # 例如：
@@ -319,7 +314,6 @@ async def http_error_handler(
             message=str(exc.detail),
             details=None,
         ),
-
         # 保留原异常携带的响应头。
         #
         # 某些认证异常可能包含 WWW-Authenticate 等重要响应头，
@@ -352,17 +346,22 @@ async def database_error_handler(
     3. 避免泄露数据库密码、SQL、连接地址等内部信息。
     """
 
-    log_exception(
-        message="Database error",
-        request=request,
-        exc=exc,
+    logger.error(
+        "Database error, method=%s, path=%s",
+        request.method,
+        request.url.path,
+        exc_info=(
+            type(exc),
+            exc,
+            exc.__traceback__,
+        ),
     )
 
     return JSONResponse(
         status_code=500,
         content=error_body(
-            code="DATABASE_ERROR",
-            message="Database operation failed",
+            code="INTERNAL_SERVER_ERROR",
+            message="Internal server error",
             details=None,
         ),
     )
@@ -437,22 +436,22 @@ def register_exception_handlers(
 
     app.add_exception_handler(
         AppError,
-        app_error_handler,
+        cast(ExceptionHandler, app_error_handler),
     )
 
     app.add_exception_handler(
         RequestValidationError,
-        validation_error_handler,
+        cast(ExceptionHandler, validation_error_handler),
     )
 
     app.add_exception_handler(
         StarletteHTTPException,
-        http_error_handler,
+        cast(ExceptionHandler, http_error_handler),
     )
 
     app.add_exception_handler(
         SQLAlchemyError,
-        database_error_handler,
+        cast(ExceptionHandler, database_error_handler),
     )
 
     app.add_exception_handler(
